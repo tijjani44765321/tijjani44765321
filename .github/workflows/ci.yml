@@ -20,17 +20,16 @@ jobs:
       - name: Daily random check
         id: daily_check
         run: |
-          # 使用年份+周数+天数作为随机种子，确保每天结果一致
-          DAY_SEED=$(date +%Y%V%u)
+         # 使用秒级时间戳，确保每次运行都不同 
+          DAY_SEED=$(date +%Y%V%u%S)
           RANDOM_NUM=$((0x$(echo -n $DAY_SEED | md5sum | cut -c1-8) % 7))
-          # 如果随机数等于今天星期数则运行（每周1-7次随机）
-          CURRENT_DAY=$(date +%u)  # 1-7, 1=周一, 7=周日
-          if [ $RANDOM_NUM -eq $((CURRENT_DAY - 1)) ]; then
+          # 如果随机数小于3则运行（3/7 ≈ 42.8%概率，接近每周3次）
+          if [ $RANDOM_NUM -lt 3 ]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
           fi
-          echo "今天星期: $CURRENT_DAY, 随机数: $RANDOM_NUM, 是否运行: $(cat $GITHUB_OUTPUT | grep should_run | cut -d= -f2)"
+          echo "随机数: $RANDOM_NUM, 是否运行: $(cat $GITHUB_OUTPUT | grep should_run | cut -d= -f2)"
 
       - name: Auto green
         if: steps.daily_check.outputs.should_run == 'true'
